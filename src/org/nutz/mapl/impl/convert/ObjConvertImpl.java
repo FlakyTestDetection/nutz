@@ -1,8 +1,10 @@
 package org.nutz.mapl.impl.convert;
 
 import org.nutz.castor.Castors;
+import org.nutz.conf.NutConf;
 import org.nutz.el.El;
 import org.nutz.json.Json;
+import org.nutz.json.entity.JsonCallback;
 import org.nutz.json.entity.JsonEntity;
 import org.nutz.json.entity.JsonEntityField;
 import org.nutz.lang.Lang;
@@ -33,12 +35,14 @@ public class ObjConvertImpl implements MaplConvert {
     // 路径
     Stack<String> path = new Stack<String>();
     // 对象缓存
-    Context context = Lang.context();
+    Context context;
 
     private Type type;
 
     public ObjConvertImpl(Type type) {
         this.type = type;
+        if (NutConf.USE_EL_IN_OBJECT_CONVERT)
+            context = Lang.context();
     }
 
     /**
@@ -69,6 +73,9 @@ public class ObjConvertImpl implements MaplConvert {
     Object inject(Object model, Type type) {
         if (model == null) {
             return null;
+        }
+        if (type == Object.class) {
+            return model;
         }
         Mirror<?> me = Mirror.me(type);
         Object obj = null;
@@ -185,14 +192,18 @@ public class ObjConvertImpl implements MaplConvert {
 
     @SuppressWarnings("unchecked")
     private Object injectObj(Object model, Mirror<?> mirror) {
-        // zzh: 如果是 Object，那么就不要转换了
-        if (mirror.getType() == Object.class)
-            return model;
-        Object obj = mirror.born();
-        context.set(fetchPath(), obj);
-        Map<String, ?> map = (Map<String, ?>) model;
-
         JsonEntity jen = Json.getEntity(mirror);
+        Object obj = null;
+        JsonCallback callback = jen.getJsonCallback();
+        if (callback != null) {
+            obj = callback.fromJson(model);
+            if (obj != null)
+                return obj;
+        }
+        obj = mirror.born();
+        if (NutConf.USE_EL_IN_OBJECT_CONVERT)
+            context.set(fetchPath(), obj);
+        Map<String, Object> map = (Map<String, Object>) model;
         for (Entry<String, ?> en : map.entrySet()) {
             Object val = en.getValue();
             if (val == null)
@@ -202,16 +213,16 @@ public class ObjConvertImpl implements MaplConvert {
             if (jef == null) {
                 continue;
             }
-            if (isLeaf(val)) {
-                if (val instanceof El) {
-                    val = ((El) val).eval(context);
+            if (NutConf.USE_EL_IN_OBJECT_CONVERT) {
+                if (isLeaf(val)) {
+                    if (val instanceof El) {
+                        val = ((El) val).eval(context);
+                    }
+                } else {
+                    path.push(key);
                 }
-                jef.setValue(obj, Mapl.maplistToObj(val, jef.getGenericType()));
-                continue;
-            } else {
-                path.push(key);
-                jef.setValue(obj, Mapl.maplistToObj(val, jef.getGenericType()));
             }
+            jef.setValue(obj, Mapl.maplistToObj(val, jef.getGenericType()));
         }
         return obj;
     }
