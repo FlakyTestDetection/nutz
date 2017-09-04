@@ -167,8 +167,19 @@ public abstract class Times {
         }
 
         private void __recound_by_valueInMilliSecond() {
-            this.value = this.millisecond / 1000;
-            this.millisecond = this.valueInMillisecond - this.value;
+            // 确保毫秒数在一天之内，即 [0, 86399000]
+            if (this.valueInMillisecond >= 86400000) {
+                this.valueInMillisecond = this.valueInMillisecond % 86400000;
+            }
+            // 负数表示后退
+            else if (this.valueInMillisecond < 0) {
+                this.valueInMillisecond = this.valueInMillisecond % 86400000;
+                if (this.valueInMillisecond < 0)
+                    this.valueInMillisecond = 86400000 + this.valueInMillisecond;
+            }
+            // 计算其他值
+            this.value = this.valueInMillisecond / 1000;
+            this.millisecond = this.valueInMillisecond - this.value * 1000;
             this.hour = Math.min(23, this.value / 3600);
             this.minute = Math.min(59, (this.value - (this.hour * 3600)) / 60);
             this.second = Math.min(59, this.value - (this.hour * 3600) - (this.minute * 60));
@@ -1466,5 +1477,50 @@ public abstract class Times {
         }
         long diff = end.getTime() - start.getTime();
         return diff / unit;
+    }
+    
+    /**
+     * 取得指定日期过 minute 分钟后的日期 (当 minute 为负数表示指定分钟之前)
+     *
+     * @param date
+     *            日期 为null时表示当天
+     */
+    public static Date nextMinute(Date date, int minute) {
+        Calendar cal = Calendar.getInstance();
+        if (date != null) {
+            cal.setTime(date);
+        }
+        cal.add(Calendar.MINUTE, minute);
+        return cal.getTime();
+    }
+
+    /**
+     * 取得指定日期过 second 秒后的日期 (当 second 为负数表示指定秒之前)
+     *
+     * @param date
+     *            日期 为null时表示当天
+     */
+    public static Date nextSecond(Date date, int second) {
+        Calendar cal = Calendar.getInstance();
+        if (date != null) {
+            cal.setTime(date);
+        }
+        cal.add(Calendar.SECOND, second);
+        return cal.getTime();
+    }
+
+    /**
+     * 取得指定日期过 hour 小时后的日期 (当 hour 为负数表示指定小时之前)
+     *
+     * @param date
+     *            日期 为null时表示当天
+     */
+    public static Date nextHour(Date date, int hour) {
+        Calendar cal = Calendar.getInstance();
+        if (date != null) {
+            cal.setTime(date);
+        }
+        cal.add(Calendar.HOUR, hour);
+        return cal.getTime();
     }
 }
