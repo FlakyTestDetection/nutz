@@ -670,11 +670,102 @@ public class Images {
 
         // 添加水印
         Graphics2D gs = im1.createGraphics();
-        gs.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+        gs.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP, opacity));
         gs.drawImage(im2, px, py, null);
         gs.dispose();
 
         return im1;
+    }
+
+    /**
+     * 获取灰度图像
+     * 
+     * @param srcIm
+     *            源图片
+     * @return 灰度图片
+     */
+    public static BufferedImage grayImage(Object srcIm) {
+        BufferedImage srcImage = read(srcIm);
+        BufferedImage grayImage = new BufferedImage(srcImage.getWidth(),
+                                                    srcImage.getHeight(),
+                                                    srcImage.getType());
+        for (int i = 0; i < srcImage.getWidth(); i++) {
+            for (int j = 0; j < srcImage.getHeight(); j++) {
+                grayImage.setRGB(i, j, Colors.getGray(srcImage, i, j));
+            }
+        }
+        return grayImage;
+    }
+
+    /**
+     * 实现两张图片的正片叠底效果
+     * 
+     * @param bgIm
+     *            背景图
+     * @param itemIm
+     *            上层图
+     * @param x
+     *            上层图横坐标
+     * @param y
+     *            下层图横坐标
+     * @return 正片叠底后的图片
+     */
+    public static BufferedImage multiply(Object bgIm, Object itemIm, int x, int y) {
+
+        BufferedImage viewportImage = read(bgIm);
+        BufferedImage itemImage = read(itemIm);
+        BufferedImage muImage = new BufferedImage(viewportImage.getWidth(),
+                                                  viewportImage.getHeight(),
+                                                  viewportImage.getType());
+        // 背景图为视口范围，上层图不能超过视口进行绘制, 只有重合部分进行计算叠底
+        int xMin = x;
+        int xMax = x + itemImage.getWidth();
+        int yMin = y;
+        int yMax = y + itemImage.getHeight();
+        for (int i = 0; i < viewportImage.getWidth(); i++) {
+            for (int j = 0; j < viewportImage.getHeight(); j++) {
+                int rgb = 0;
+                // 判断是否重合
+                if (i >= xMin && i < xMax && j >= yMin && j < yMax) {
+                    // 获取两个图rgb值
+                    int vpRGB = viewportImage.getRGB(i, j);
+                    int imRGB = itemImage.getRGB(i - x, j - y);
+                    rgb = Colors.getMultiply(vpRGB, imRGB);
+                } else {
+                    rgb = viewportImage.getRGB(i, j);
+                }
+                muImage.setRGB(i, j, rgb);
+            }
+        }
+
+        return muImage;
+    }
+
+    public static final int CHANNEL_RED = 0;
+    public static final int CHANNEL_GREEN = 1;
+    public static final int CHANNEL_BLUE = 2;
+
+    /**
+     * 获取三原色通道图片
+     * 
+     * @param srcIm
+     *            源图片
+     * @param channel
+     *            通道编号，0:red 1:green 2:blue
+     * @return 单一通道图片
+     */
+    public static BufferedImage channelImage(Object srcIm, int channel) {
+        BufferedImage srcImage = read(srcIm);
+        BufferedImage rcImage = new BufferedImage(srcImage.getWidth(),
+                                                  srcImage.getHeight(),
+                                                  srcImage.getType());
+        for (int i = 0; i < srcImage.getWidth(); i++) {
+            for (int j = 0; j < srcImage.getHeight(); j++) {
+                int r = Colors.getRGB(srcImage, i, j)[channel];
+                rcImage.setRGB(i, j, new Color(r, r, r).getRGB());
+            }
+        }
+        return rcImage;
     }
 
     /**
@@ -811,8 +902,8 @@ public class Images {
             if (writer != null) {
                 try {
                     writer.dispose();
-                } catch (Throwable e) {
                 }
+                catch (Throwable e) {}
             }
         }
     }
@@ -846,11 +937,12 @@ public class Images {
             writeJpeg(image, out, 1);
             out.flush();
             return read(new ByteArrayInputStream(out.toByteArray()));
-        } finally {
+        }
+        finally {
             try {
                 reader.dispose();
-            } catch (Throwable e) {
             }
+            catch (Throwable e) {}
         }
     }
 

@@ -1,4 +1,3 @@
-addons:
   coverity_scan:
     branch_pattern: coverity_scan
     build_command: mvn -DskipTests=true compile
@@ -20,6 +19,10 @@ before_script:
 - psql -c 'create database nutztest;' -U postgres
 - cp ./tools/travis-ci/nutz-test.properties ./test/
 - cp ./tools/travis-ci/log4j.properties ./test/
+language: java
+jdk:
+  - oraclejdk8
+# whitelist
 branches:
   only:
   - master
