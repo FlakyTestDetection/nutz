@@ -1,11 +1,3 @@
-  coverity_scan:
-    branch_pattern: coverity_scan
-    build_command: mvn -DskipTests=true compile
-    build_command_prepend: mvn clean
-    notification_email: wendal1985@gmail.com
-    project:
-      name: nutzam/nutz
-  postgresql: '9.3'
 after_success:
 - bash <(curl -s https://codecov.io/bash)
 - python mvn_settings.py
