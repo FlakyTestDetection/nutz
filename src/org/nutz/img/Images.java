@@ -585,8 +585,11 @@ public class Images {
      * @return 被扭曲后的图片
      */
     public static BufferedImage twist(Object srcIm, double twistRank, String bgColor) {
+        if (twistRank <= 0) {
+            twistRank = 1;
+        }
         BufferedImage bufImg = read(srcIm);
-        double period = R.random(0, 7) + 3;// 波形的幅度倍数，越大扭曲的程序越高，一般为3
+        double period = R.random(0, 10) + 3;// 波形的幅度倍数，越大扭曲的程序越高，一般为3
         double phase = R.random(0, 6);// 波形的起始相位，取值区间（0-2＊PI）
         int width = bufImg.getWidth();
         int height = bufImg.getHeight();
@@ -599,7 +602,7 @@ public class Images {
 
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                int nX = x4twist(twistRank, phase, period, height, i, j);
+                int nX = pos4twist(twistRank, phase, period, height, i, j);
                 int nY = j;
                 if (nX >= 0 && nX < width && nY >= 0 && nY < height) {
                     tarIm.setRGB(nX, nY, bufImg.getRGB(i, j));
@@ -609,17 +612,18 @@ public class Images {
         return tarIm;
     }
 
-    // 扭曲相关计算
-    private static int x4twist(double rank, double phase, double period, int height, int x, int y) {
-        double dx = Math.PI * rank * y / height + phase;
-        double dy = Math.sin(dx);
-        return x + (int) (dy * period);
-    }
-
-    private static int y4twist(double rank, double phase, double period, int width, int x, int y) {
-        double dy = Math.PI * rank * x / width + phase;
-        double dx = Math.sin(dy);
-        return y + (int) (dx * period);
+    // 扭曲相关计算, 后面的参数有两种组合
+    // 1. width, x, y
+    // 2. height, y, x
+    private static int pos4twist(double rank,
+                                 double phase,
+                                 double period,
+                                 int wOrH,
+                                 int xOrY,
+                                 int yOrX) {
+        double dyOrX = Math.PI * rank * xOrY / wOrH + phase;
+        double dxOrY = Math.sin(dyOrX);
+        return yOrX + (int) (dxOrY * period);
     }
 
     public static final int WATERMARK_TOP_LEFT = 1;
@@ -1454,7 +1458,7 @@ public class Images {
         }
 
         // 图像扭曲
-
+        im = twist(im, 1, bgColor);
         return im;
     }
 
